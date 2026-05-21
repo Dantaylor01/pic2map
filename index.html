@@ -5,124 +5,552 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Photo GPS → KML Converter</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #1e88e5; }
-    #dropZone { border: 3px dashed #1e88e5; border-radius: 12px; padding: 40px; text-align: center; margin: 20px 0; cursor: pointer; }
-    #dropZone.dragover { background: #e3f2fd; }
-    button { padding: 12px 24px; font-size: 16px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; }
-    .btn-primary { background: #1e88e5; color: white; }
-    .result { margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container { 
+      max-width: 800px; 
+      margin: auto; 
+      background: white; 
+      padding: 30px; 
+      border-radius: 16px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    h1 { 
+      text-align: center; 
+      color: #667eea; 
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    
+    #dropZone { 
+      border: 3px dashed #667eea; 
+      border-radius: 12px; 
+      padding: 50px 20px; 
+      text-align: center; 
+      margin: 30px 0; 
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9ff;
+    }
+    
+    #dropZone:hover {
+      border-color: #764ba2;
+      background: #f0f2ff;
+    }
+    
+    #dropZone.dragover { 
+      background: #e3f2fd; 
+      border-color: #764ba2;
+      transform: scale(1.02);
+    }
+    
+    #dropZone h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 1.3em;
+    }
+    
+    #dropZone p {
+      color: #999;
+      margin: 10px 0;
+    }
+    
+    button { 
+      padding: 12px 24px; 
+      font-size: 16px; 
+      margin: 10px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    
+    .btn-primary { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    #status { 
+      margin: 20px 0;
+      min-height: 30px;
+    }
+    
+    .status-message {
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+    }
+    
+    .status-loading {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    .status-success {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+    
+    .status-error {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+    
+    .status-warning {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(25, 118, 210, 0.3);
+      border-radius: 50%;
+      border-top-color: #1976d2;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .result { 
+      margin-top: 25px; 
+      padding: 20px; 
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      border-left: 4px solid #388e3c;
+      border-radius: 8px; 
+      display: none;
+    }
+    
+    .result.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .result h3 {
+      color: #388e3c;
+      margin-bottom: 10px;
+    }
+    
+    .result p {
+      color: #555;
+      margin: 8px 0;
+      font-size: 1.05em;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    
+    .stat-box {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      color: #999;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    
+    .photo-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 15px 0;
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .photo-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9em;
+      color: #666;
+    }
+    
+    .photo-item:last-child {
+      border-bottom: none;
+    }
+    
+    .photo-name {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .photo-coords {
+      color: #999;
+      font-size: 0.85em;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    .error-list {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    
+    .error-item {
+      padding: 6px;
+      border-bottom: 1px solid #ffebee;
+      font-size: 0.85em;
+      color: #d32f2f;
+    }
+    
+    .error-item:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 2em;
+      }
+      
+      #dropZone {
+        padding: 30px 15px;
+      }
+      
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📸 Photo GPS → KML</h1>
-    <p style="text-align:center">อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด → ดาวน์โหลดไฟล์ KML</p>
+    <p class="subtitle">อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด → ดาวน์โหลดไฟล์ KML</p>
 
     <div id="dropZone">
       <h3>ลากไฟล์รูปมาวางที่นี่</h3>
       <p>หรือ</p>
-      <input type="file" id="fileInput" multiple accept="image/*" style="display:none;">
+      <input type="file" id="fileInput" multiple accept="image/*">
       <button class="btn-primary" onclick="document.getElementById('fileInput').click()">เลือกไฟล์รูปภาพ</button>
     </div>
 
     <div id="status"></div>
-    <div id="result" class="result" style="display:none;">
+    
+    <div id="result" class="result">
       <h3>✅ เสร็จสิ้น</h3>
-      <p>พบ <span id="count">0</span> รูปที่มีพิกัด</p>
-      <button class="btn-primary" onclick="downloadKML()">⬇️ ดาวน์โหลดไฟล์ KML</button>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number" id="count">0</div>
+          <div class="stat-label">รูปที่มีพิกัด</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="skippedCount">0</div>
+          <div class="stat-label">รูปที่ข้าม</div>
+        </div>
+      </div>
+      
+      <div id="photoListContainer" style="display:none;">
+        <h4 style="color: #667eea; margin-bottom: 10px;">📍 รูปที่พบพิกัด:</h4>
+        <div class="photo-list" id="photoList"></div>
+      </div>
+      
+      <div id="errorListContainer" style="display:none;">
+        <h4 style="color: #f57c00; margin-bottom: 10px;">⚠️ รูปที่ไม่มีพิกัด:</h4>
+        <div class="error-list" id="errorList"></div>
+      </div>
+      
+      <button class="btn-primary" onclick="downloadKML()" style="width: 100%; margin-top: 15px;">⬇️ ดาวน์โหลดไฟล์ KML</button>
+      <button class="btn-secondary" onclick="resetForm()" style="width: 100%; margin-top: 10px;">🔄 อัพโหลดไฟล์ใหม่</button>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
   <script>
     let photosWithGPS = [];
+    let photosWithoutGPS = [];
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const status = document.getElementById('status');
 
-    // ลากและวาง
+    // Drag and Drop Events
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropZone.classList.add('dragover');
     });
 
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('dragover');
+    });
 
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropZone.classList.remove('dragover');
       handleFiles(e.dataTransfer.files);
     });
 
     fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-    async function handleFiles(files) {
-      photosWithGPS = [];
-      status.innerHTML = `<p>กำลังอ่าน ${files.length} ไฟล์...</p>`;
-
-      for (let file of files) {
-        if (!file.type.startsWith('image/')) continue;
-
-        const gps = await getGPSFromImage(file);
-        if (gps) {
-          photosWithGPS.push({
-            name: file.name,
-            lat: gps.lat,
-            lng: gps.lng,
-            date: gps.date || new Date().toISOString()
-          });
-        }
+    function showStatus(message, type = 'info') {
+      let icon = '🔄';
+      let className = 'status-loading';
+      
+      switch(type) {
+        case 'success':
+          icon = '✅';
+          className = 'status-success';
+          break;
+        case 'error':
+          icon = '❌';
+          className = 'status-error';
+          break;
+        case 'warning':
+          icon = '⚠️';
+          className = 'status-warning';
+          break;
       }
-
-      if (photosWithGPS.length > 0) {
-        document.getElementById('count').textContent = photosWithGPS.length;
-        document.getElementById('result').style.display = 'block';
-        status.innerHTML = `<p style="color:green">พบ ${photosWithGPS.length} รูปที่มีพิกัด GPS ✅</p>`;
+      
+      let html = `<div class="status-message ${className}">`;
+      if (type === 'info') {
+        html += `<span class="spinner"></span>`;
       } else {
-        status.innerHTML = `<p style="color:red">ไม่พบพิกัด GPS ในรูปใดเลย</p>`;
+        html += `<span>${icon}</span>`;
       }
+      html += `<span>${message}</span></div>`;
+      status.innerHTML = html;
+    }
+
+    async function handleFiles(files) {
+      if (files.length === 0) return;
+
+      // Validate file count
+      if (files.length > 100) {
+        showStatus('❌ กรุณาเลือกไฟล์ไม่เกิน 100 ไฟล์', 'error');
+        return;
+      }
+
+      photosWithGPS = [];
+      photosWithoutGPS = [];
+      
+      showStatus(`กำลังอ่าน ${files.length} ไฟล์...`, 'info');
+
+      let processed = 0;
+      for (let file of files) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          photosWithoutGPS.push({ name: file.name, reason: 'ไฟล์ไม่ใช่รูปภาพ' });
+          processed++;
+          continue;
+        }
+
+        // Validate file size (max 20MB)
+        if (file.size > 20 * 1024 * 1024) {
+          photosWithoutGPS.push({ name: file.name, reason: 'ไฟล์ใหญ่เกินไป (> 20MB)' });
+          processed++;
+          continue;
+        }
+
+        try {
+          const gps = await getGPSFromImage(file);
+          if (gps) {
+            photosWithGPS.push({
+              name: file.name,
+              lat: gps.lat,
+              lng: gps.lng,
+              date: gps.date || new Date().toISOString()
+            });
+          } else {
+            photosWithoutGPS.push({ name: file.name, reason: 'ไม่พบข้อมูล GPS' });
+          }
+        } catch (error) {
+          photosWithoutGPS.push({ name: file.name, reason: `ข้อผิดพลาด: ${error.message}` });
+        }
+        processed++;
+        showStatus(`กำลังประมวลผล ${processed}/${files.length} ไฟล์...`, 'info');
+      }
+
+      displayResults();
     }
 
     function getGPSFromImage(file) {
-      return new Promise((resolve) => {
-        EXIF.getData(file, function() {
-          const lat = EXIF.getTag(this, "GPSLatitude");
-          const latRef = EXIF.getTag(this, "GPSLatitudeRef");
-          const lng = EXIF.getTag(this, "GPSLongitude");
-          const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
-          const date = EXIF.getTag(this, "DateTimeOriginal");
+      return new Promise((resolve, reject) => {
+        try {
+          EXIF.getData(file, function() {
+            try {
+              const lat = EXIF.getTag(this, "GPSLatitude");
+              const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+              const lng = EXIF.getTag(this, "GPSLongitude");
+              const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
+              const date = EXIF.getTag(this, "DateTimeOriginal");
 
-          if (lat && lng) {
-            const latitude = convertDMSToDD(lat, latRef);
-            const longitude = convertDMSToDD(lng, lngRef);
-            resolve({ lat: latitude, lng: longitude, date: date });
-          } else {
-            resolve(null);
-          }
-        });
+              if (lat && lng) {
+                const latitude = convertDMSToDD(lat, latRef);
+                const longitude = convertDMSToDD(lng, lngRef);
+                
+                // Validate coordinates
+                if (isValidCoordinate(latitude, longitude)) {
+                  resolve({ lat: latitude, lng: longitude, date: date });
+                } else {
+                  resolve(null);
+                }
+              } else {
+                resolve(null);
+              }
+            } catch (error) {
+              reject(error);
+            }
+          });
+        } catch (error) {
+          reject(error);
+        }
       });
     }
 
     function convertDMSToDD(dms, ref) {
+      if (!dms || dms.length < 3) return 0;
       let dd = dms[0] + dms[1]/60 + dms[2]/3600;
       if (ref === "S" || ref === "W") dd = -dd;
-      return dd;
+      return parseFloat(dd.toFixed(6));
+    }
+
+    function isValidCoordinate(lat, lng) {
+      return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    }
+
+    function displayResults() {
+      if (photosWithGPS.length === 0 && photosWithoutGPS.length === 0) {
+        showStatus('ไม่พบไฟล์รูปภาพ', 'error');
+        return;
+      }
+
+      if (photosWithGPS.length > 0) {
+        document.getElementById('count').textContent = photosWithGPS.length;
+        document.getElementById('skippedCount').textContent = photosWithoutGPS.length;
+        
+        // Display photo list
+        const photoListContainer = document.getElementById('photoListContainer');
+        const photoList = document.getElementById('photoList');
+        photoList.innerHTML = photosWithGPS.map(photo => `
+          <div class="photo-item">
+            <div class="photo-name">📷 ${escapeHtml(photo.name)}</div>
+            <div class="photo-coords">📍 ${photo.lat.toFixed(4)}, ${photo.lng.toFixed(4)}</div>
+          </div>
+        `).join('');
+        photoListContainer.style.display = 'block';
+        
+        // Display error list if exists
+        if (photosWithoutGPS.length > 0) {
+          const errorListContainer = document.getElementById('errorListContainer');
+          const errorList = document.getElementById('errorList');
+          errorList.innerHTML = photosWithoutGPS.map(photo => `
+            <div class="error-item">📸 ${escapeHtml(photo.name)} - ${escapeHtml(photo.reason)}</div>
+          `).join('');
+          errorListContainer.style.display = 'block';
+        }
+        
+        document.getElementById('result').classList.add('show');
+        
+        showStatus(`พบ ${photosWithGPS.length} รูปที่มีพิกัด GPS ✅`, 'success');
+      } else {
+        showStatus('ไม่พบพิกัด GPS ในรูปใดเลย', 'error');
+      }
     }
 
     function downloadKML() {
+      if (photosWithGPS.length === 0) {
+        showStatus('ไม่มีข้อมูลพิกัด GPS เพื่อสร้าง KML', 'error');
+        return;
+      }
+
       let kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Photo GPS Points</name>`;
+    <name>Photo GPS Points</name>
+    <description>Generated by Photo GPS to KML Converter</description>
+    <Style id="photoStyle">
+      <IconStyle>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>`;
 
-      photosWithGPS.forEach((photo, index) => {
+      photosWithGPS.forEach((photo) => {
         kml += `
     <Placemark>
-      <name>${photo.name}</name>
-      <description>ถ่ายเมื่อ: ${photo.date}</description>
+      <name>${escapeXml(photo.name)}</name>
+      <description>ถ่ายเมื่อ: ${photo.date || 'ไม่ทราบ'}</description>
+      <styleUrl>#photoStyle</styleUrl>
       <Point>
         <coordinates>${photo.lng},${photo.lat},0</coordinates>
       </Point>
@@ -133,13 +561,46 @@
   </Document>
 </kml>`;
 
-      const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Photo_GPS_${new Date().toISOString().slice(0,10)}.kml`;
-      a.click();
-      URL.revokeObjectURL(url);
+      try {
+        const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Photo_GPS_${new Date().toISOString().slice(0,10)}.kml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showStatus(`ดาวน์โหลด KML สำเร็จ (${photosWithGPS.length} พิกัด)`, 'success');
+      } catch (error) {
+        showStatus(`ข้อผิดพลาดในการดาวน์โหลด: ${error.message}`, 'error');
+      }
+    }
+
+    function resetForm() {
+      photosWithGPS = [];
+      photosWithoutGPS = [];
+      fileInput.value = '';
+      status.innerHTML = '';
+      document.getElementById('result').classList.remove('show');
+      document.getElementById('photoListContainer').style.display = 'none';
+      document.getElementById('errorListContainer').style.display = 'none';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeXml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
     }
   </script>
 </body>
