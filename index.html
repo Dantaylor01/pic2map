@@ -1,399 +1,407 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GPS Photo → KMZ Converter</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"/>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Space+Mono&display=swap');
-body{font-family:'IBM Plex Sans Thai',sans-serif;background:#0f1117;min-height:100vh;padding:24px;color:#e8e8f0}
-.app{max-width:1100px;margin:auto}
-.header{text-align:center;padding:32px 0 24px}
-.header h1{font-size:2rem;font-weight:600;letter-spacing:-0.5px;color:#fff}
-.header h1 span{color:#7c6ef5}
-.header p{color:#6b6b8a;margin-top:8px;font-size:0.9rem}
-.grid{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
-.panel{background:#16182a;border:0.5px solid #2a2d4a;border-radius:14px;padding:20px}
-.drop-zone{border:1.5px dashed #3a3d60;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#0f1125}
-.drop-zone:hover,.drop-zone.dragover{border-color:#7c6ef5;background:#13152a}
-.drop-zone i{font-size:36px;color:#3a3d60;display:block;margin-bottom:12px}
-.drop-zone.dragover i{color:#7c6ef5}
-.drop-zone p{color:#6b6b8a;font-size:0.85rem;line-height:1.6}
-.drop-zone strong{color:#9a9ab8;font-size:0.95rem;display:block;margin-bottom:6px}
-input[type=file]{display:none}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit}
-.btn-primary{background:#7c6ef5;color:#fff}
-.btn-primary:hover{background:#6a5de0}
-.btn-ghost{background:#1e2040;color:#9a9ab8;border:0.5px solid #2a2d4a}
-.btn-ghost:hover{background:#252845;color:#c0c0d8}
-.btn-full{width:100%;justify-content:center;margin-top:10px}
-.status-box{margin-top:14px;padding:10px 14px;border-radius:8px;font-size:0.83rem;display:flex;align-items:center;gap:8px;display:none}
-.status-box.show{display:flex}
-.status-info{background:#13152a;border:0.5px solid #2a2d4a;color:#8a8ab0}
-.status-ok{background:#0d1f18;border:0.5px solid #1a4a30;color:#4caf85}
-.status-warn{background:#1e1800;border:0.5px solid #4a3800;color:#d4a03a}
-.status-err{background:#1f0d0d;border:0.5px solid #4a1a1a;color:#d45050}
-.spin{display:inline-block;width:14px;height:14px;border:1.5px solid #3a3d60;border-top-color:#7c6ef5;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.results-panel{margin-top:16px;display:none}
-.results-panel.show{display:block}
-.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.stat-card{background:#0f1125;border:0.5px solid #2a2d4a;border-radius:8px;padding:12px 14px;text-align:center}
-.stat-n{font-size:1.6rem;font-weight:600;color:#7c6ef5;font-family:'Space Mono',monospace}
-.stat-label{font-size:0.75rem;color:#6b6b8a;margin-top:4px}
-.section-label{font-size:0.75rem;font-weight:500;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 8px}
-.photo-scroll{max-height:180px;overflow-y:auto;border-radius:8px;background:#0f1125;border:0.5px solid #1e2040}
-.photo-row{padding:8px 12px;border-bottom:0.5px solid #1e2040;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:8px}
-.photo-row:hover{background:#13152a}
-.photo-row:last-child{border-bottom:none}
-.photo-thumb{width:32px;height:32px;object-fit:cover;border-radius:4px;background:#1e2040;flex-shrink:0}
-.photo-name{font-size:0.82rem;color:#c0c0d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
-.photo-coord{font-size:0.73rem;color:#6b6b8a;font-family:'Space Mono',monospace}
-.err-scroll{max-height:100px;overflow-y:auto;border-radius:8px;background:#0f1125;border:0.5px solid #1e2040}
-.err-row{padding:7px 12px;border-bottom:0.5px solid #1e2040;font-size:0.78rem;color:#d45050}
-.err-row:last-child{border-bottom:none}
-.map-panel{border-radius:10px;overflow:hidden;position:relative;min-height:460px}
-#map{width:100%;height:460px}
-.map-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:460px;background:#0f1125;border:0.5px solid #2a2d4a;border-radius:10px;color:#3a3d60;gap:12px}
-.map-empty i{font-size:40px}
-.map-empty p{font-size:0.85rem}
-.progress-bar{height:3px;background:#1e2040;border-radius:3px;margin-top:10px;overflow:hidden;display:none}
-.progress-bar.show{display:block}
-.progress-fill{height:100%;background:#7c6ef5;width:0%;transition:width 0.2s;border-radius:3px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}.map-panel{min-height:300px}#map{height:300px}.map-empty{min-height:300px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS Photo → KMZ Converter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Space+Mono&display=swap');
+    body{font-family:'IBM Plex Sans Thai',sans-serif;background:#0f1117;min-height:100vh;padding:24px;color:#e8e8f0}
+    .app{max-width:1100px;margin:auto}
+    .header{text-align:center;padding:32px 0 24px}
+    .header h1{font-size:2rem;font-weight:600;letter-spacing:-0.5px;color:#fff}
+    .header h1 span{color:#7c6ef5}
+    .header p{color:#6b6b8a;margin-top:8px;font-size:0.9rem}
+    .grid{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
+    .panel{background:#16182a;border:0.5px solid #2a2d4a;border-radius:14px;padding:20px}
+    .drop-zone{border:1.5px dashed #3a3d60;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#0f1125}
+    .drop-zone:hover,.drop-zone.dragover{border-color:#7c6ef5;background:#13152a}
+    .drop-zone i{font-size:36px;color:#3a3d60;display:block;margin-bottom:12px}
+    .drop-zone.dragover i{color:#7c6ef5}
+    .drop-zone p{color:#6b6b8a;font-size:0.85rem;line-height:1.6}
+    .drop-zone strong{color:#9a9ab8;font-size:0.95rem;display:block;margin-bottom:6px}
+    input[type=file]{display:none}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit}
+    .btn-primary{background:#7c6ef5;color:#fff}
+    .btn-primary:hover{background:#6a5de0}
+    .btn-ghost{background:#1e2040;color:#9a9ab8;border:0.5px solid #2a2d4a}
+    .btn-ghost:hover{background:#252845;color:#c0c0d8}
+    .btn-full{width:100%;justify-content:center;margin-top:10px}
+    .status-box{margin-top:14px;padding:10px 14px;border-radius:8px;font-size:0.83rem;display:flex;align-items:center;gap:8px;display:none}
+    .status-box.show{display:flex}
+    .status-info{background:#13152a;border:0.5px solid #2a2d4a;color:#8a8ab0}
+    .status-ok{background:#0d1f18;border:0.5px solid #1a4a30;color:#4caf85}
+    .status-warn{background:#1e1800;border:0.5px solid #4a3800;color:#d4a03a}
+    .status-err{background:#1f0d0d;border:0.5px solid #4a1a1a;color:#d45050}
+    .spin{display:inline-block;width:14px;height:14px;border:1.5px solid #3a3d60;border-top-color:#7c6ef5;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .results-panel{margin-top:16px;display:none}
+    .results-panel.show{display:block}
+    .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .stat-card{background:#0f1125;border:0.5px solid #2a2d4a;border-radius:8px;padding:12px 14px;text-align:center}
+    .stat-n{font-size:1.6rem;font-weight:600;color:#7c6ef5;font-family:'Space Mono',monospace}
+    .stat-label{font-size:0.75rem;color:#6b6b8a;margin-top:4px}
+    .section-label{font-size:0.75rem;font-weight:500;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 8px}
+    .photo-scroll{max-height:180px;overflow-y:auto;border-radius:8px;background:#0f1125;border:0.5px solid #1e2040}
+    .photo-row{padding:8px 12px;border-bottom:0.5px solid #1e2040;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:8px}
+    .photo-row:hover{background:#13152a}
+    .photo-row:last-child{border-bottom:none}
+    .photo-thumb{width:32px;height:32px;object-fit:cover;border-radius:4px;background:#1e2040;flex-shrink:0}
+    .photo-name{font-size:0.82rem;color:#c0c0d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+    .photo-coord{font-size:0.73rem;color:#6b6b8a;font-family:'Space Mono',monospace}
+    .err-scroll{max-height:100px;overflow-y:auto;border-radius:8px;background:#0f1125;border:0.5px solid #1e2040}
+    .err-row{padding:7px 12px;border-bottom:0.5px solid #1e2040;font-size:0.78rem;color:#d45050}
+    .err-row:last-child{border-bottom:none}
+    .map-panel{border-radius:10px;overflow:hidden;position:relative;min-height:460px}
+    #map{width:100%;height:460px}
+    .map-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:460px;background:#0f1125;border:0.5px solid #2a2d4a;border-radius:10px;color:#3a3d60;gap:12px}
+    .map-empty i{font-size:40px}
+    .map-empty p{font-size:0.85rem}
+    .progress-bar{height:3px;background:#1e2040;border-radius:3px;margin-top:10px;overflow:hidden;display:none}
+    .progress-bar.show{display:block}
+    .progress-fill{height:100%;background:#7c6ef5;width:0%;transition:width 0.2s;border-radius:3px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}.map-panel{min-height:300px}#map{height:300px}.map-empty{min-height:300px}}
+  </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <h1><span>GPS</span> Photo → KMZ</h1>
-    <p>อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด GPS → ดาวน์โหลดไฟล์ KMZ สำหรับ Google Earth</p>
-  </div>
+  <div class="app">
+    <div class="header">
+      <h1><span>GPS</span> Photo → KMZ</h1>
+      <p>อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด GPS → ดาวน์โหลดไฟล์ KMZ สำหรับ Google Earth</p>
+    </div>
 
-  <div class="grid">
-    <div>
-      <div class="panel">
-        <div class="drop-zone" id="dropZone">
-          <i class="ti ti-photo-up" aria-hidden="true"></i>
-          <strong>ลากไฟล์รูปมาวางที่นี่</strong>
-          <p>รองรับ JPEG, HEIC จาก iPhone/iPad<br>สูงสุด 100 ไฟล์ ขนาดไม่เกิน 20MB ต่อไฟล์</p>
-          <button class="btn btn-primary" style="margin-top:14px" onclick="document.getElementById('fileInput').click()">
-            <i class="ti ti-folder-open" aria-hidden="true"></i> เลือกไฟล์รูปภาพ
-          </button>
-          <input type="file" id="fileInput" multiple accept="image/*">
-        </div>
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <div class="drop-zone" id="dropZone">
+            <i class="ti ti-photo-up" aria-hidden="true"></i>
+            <strong>ลากไฟล์รูปมาวางที่นี่</strong>
+            <p>รองรับ JPEG, HEIC จาก iPhone/iPad<br>สูงสุด 100 ไฟล์ ขนาดไม่เกิน 20MB ต่อไฟล์</p>
+            <button class="btn btn-primary" style="margin-top:14px" onclick="document.getElementById('fileInput').click()">
+              <i class="ti ti-folder-open" aria-hidden="true"></i> เลือกไฟล์รูปภาพ
+            </button>
+            <input type="file" id="fileInput" multiple accept="image/*">
+          </div>
 
-        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="status-box status-info" id="statusBox">
-          <span class="spin" id="statusSpinner"></span>
-          <span id="statusText">กำลังประมวลผล...</span>
-        </div>
+          <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="status-box status-info" id="statusBox">
+            <span class="spin" id="statusSpinner"></span>
+            <span id="statusText">กำลังประมวลผล...</span>
+          </div>
 
-        <div class="results-panel" id="resultsPanel">
-          <div class="stat-row">
-            <div class="stat-card">
-              <div class="stat-n" id="countGPS">0</div>
-              <div class="stat-label">รูปที่มีพิกัด GPS</div>
+          <div class="results-panel" id="resultsPanel">
+            <div class="stat-row">
+              <div class="stat-card">
+                <div class="stat-n" id="countGPS">0</div>
+                <div class="stat-label">รูปที่มีพิกัด GPS</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-n" id="countSkip">0</div>
+                <div class="stat-label">รูปที่ข้าม</div>
+              </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-n" id="countSkip">0</div>
-              <div class="stat-label">รูปที่ข้าม</div>
+
+            <div id="photoListWrap" style="display:none">
+              <div class="section-label"><i class="ti ti-map-pin" style="font-size:12px;vertical-align:-1px;margin-right:4px" aria-hidden="true"></i>รูปที่พบพิกัด</div>
+              <div class="photo-scroll" id="photoList"></div>
             </div>
-          </div>
 
-          <div id="photoListWrap" style="display:none">
-            <div class="section-label"><i class="ti ti-map-pin" style="font-size:12px;vertical-align:-1px;margin-right:4px" aria-hidden="true"></i>รูปที่พบพิกัด</div>
-            <div class="photo-scroll" id="photoList"></div>
-          </div>
+            <div id="errListWrap" style="display:none;margin-top:12px">
+              <div class="section-label"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:4px" aria-hidden="true"></i>รูปที่ไม่มีพิกัด</div>
+              <div class="err-scroll" id="errList"></div>
+            </div>
 
-          <div id="errListWrap" style="display:none;margin-top:12px">
-            <div class="section-label"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:4px" aria-hidden="true"></i>รูปที่ไม่มีพิกัด</div>
-            <div class="err-scroll" id="errList"></div>
+            <button class="btn btn-primary btn-full" id="downloadBtn" onclick="downloadKMZ()">
+              <i class="ti ti-download" aria-hidden="true"></i> ดาวน์โหลดไฟล์ KMZ
+            </button>
+            <button class="btn btn-ghost btn-full" onclick="resetAll()" style="margin-top:8px">
+              <i class="ti ti-refresh" aria-hidden="true"></i> อัพโหลดใหม่
+            </button>
           </div>
+        </div>
+      </div>
 
-          <button class="btn btn-primary btn-full" id="downloadBtn" onclick="downloadKMZ()">
-            <i class="ti ti-download" aria-hidden="true"></i> ดาวน์โหลดไฟล์ KMZ
-          </button>
-          <button class="btn btn-ghost btn-full" onclick="resetAll()" style="margin-top:8px">
-            <i class="ti ti-refresh" aria-hidden="true"></i> อัพโหลดใหม่
-          </button>
+      <div>
+        <div id="mapEmpty" class="map-empty">
+          <i class="ti ti-map-2" aria-hidden="true"></i>
+          <p>แผนที่จะแสดงพิกัดของรูปภาพที่นี่</p>
+        </div>
+        <div class="map-panel" id="mapPanel" style="display:none">
+          <div id="map"></div>
         </div>
       </div>
     </div>
-
-    <div>
-      <div id="mapEmpty" class="map-empty">
-        <i class="ti ti-map-2" aria-hidden="true"></i>
-        <p>แผนที่จะแสดงพิกัดของรูปภาพที่นี่</p>
-      </div>
-      <div class="map-panel" id="mapPanel" style="display:none">
-        <div id="map"></div>
-      </div>
-    </div>
   </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>
-let photosGPS = [], photosSkip = [], map = null, markers = [];
-
-const dz = document.getElementById('dropZone');
-const fi = document.getElementById('fileInput');
-
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-dz.addEventListener('dragleave', e => { e.preventDefault(); dz.classList.remove('dragover'); });
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
-fi.addEventListener('change', e => handleFiles(e.target.files));
-
-function setStatus(msg, type = 'info', spinner = false) {
-  const box = document.getElementById('statusBox');
-  const txt = document.getElementById('statusText');
-  const sp = document.getElementById('statusSpinner');
-  box.className = 'status-box show status-' + type;
-  txt.textContent = msg;
-  sp.style.display = spinner ? 'inline-block' : 'none';
-}
-
-function setProgress(p) {
-  const bar = document.getElementById('progressBar');
-  const fill = document.getElementById('progressFill');
-  if (p === null) { bar.classList.remove('show'); fill.style.width = '0%'; return; }
-  bar.classList.add('show');
-  fill.style.width = p + '%';
-}
-
-async function handleFiles(files) {
-  if (!files || files.length === 0) return;
-  if (files.length > 100) { setStatus('กรุณาเลือกไม่เกิน 100 ไฟล์', 'err'); return; }
-  photosGPS = []; photosSkip = [];
-  document.getElementById('resultsPanel').classList.remove('show');
-  setStatus('กำลังอ่าน ' + files.length + ' ไฟล์...', 'info', true);
-  setProgress(0);
-  let done = 0;
-  for (const file of files) {
-    if (!file.type.startsWith('image/')) { photosSkip.push({ name: file.name, reason: 'ไม่ใช่ไฟล์รูปภาพ' }); done++; continue; }
-    if (file.size > 20 * 1024 * 1024) { photosSkip.push({ name: file.name, reason: 'ไฟล์ใหญ่เกินไป (>20MB)' }); done++; continue; }
-    try {
-      const gps = await readGPS(file);
-      if (gps) {
-        const thumb = await makeThumbnail(file, 1200);
-        photosGPS.push({ name: file.name, lat: gps.lat, lng: gps.lng, date: gps.date, thumb });
-      } else {
-        photosSkip.push({ name: file.name, reason: 'ไม่พบข้อมูล GPS' });
-      }
-    } catch (e) { photosSkip.push({ name: file.name, reason: 'ข้อผิดพลาด: ' + e.message }); }
-    done++;
-    setProgress(Math.round(done / files.length * 100));
-    setStatus('กำลังประมวลผล ' + done + '/' + files.length + '...', 'info', true);
-  }
-  setProgress(null);
-  showResults();
-}
-
-function readGPS(file) {
-  return new Promise((res, rej) => {
-    try {
-      EXIF.getData(file, function () {
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    let photosGPS = [], photosSkip = [], map = null, markers = [];
+    
+    const dz = document.getElementById('dropZone');
+    const fi = document.getElementById('fileInput');
+    
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', e => { e.preventDefault(); dz.classList.remove('dragover'); });
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+    fi.addEventListener('change', e => handleFiles(e.target.files));
+    
+    function setStatus(msg, type = 'info', spinner = false) {
+      const box = document.getElementById('statusBox');
+      const txt = document.getElementById('statusText');
+      const sp = document.getElementById('statusSpinner');
+      box.className = 'status-box show status-' + type;
+      txt.textContent = msg;
+      sp.style.display = spinner ? 'inline-block' : 'none';
+    }
+    
+    function setProgress(p) {
+      const bar = document.getElementById('progressBar');
+      const fill = document.getElementById('progressFill');
+      if (p === null) { bar.classList.remove('show'); fill.style.width = '0%'; return; }
+      bar.classList.add('show');
+      fill.style.width = p + '%';
+    }
+    
+    async function handleFiles(files) {
+      if (!files || files.length === 0) return;
+      if (files.length > 100) { setStatus('กรุณาเลือกไม่เกิน 100 ไฟล์', 'err'); return; }
+      photosGPS = []; photosSkip = [];
+      document.getElementById('resultsPanel').classList.remove('show');
+      setStatus('กำลังอ่าน ' + files.length + ' ไฟล์...', 'info', true);
+      setProgress(0);
+      let done = 0;
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) { photosSkip.push({ name: file.name, reason: 'ไม่ใช่ไฟล์รูปภาพ' }); done++; continue; }
+        if (file.size > 20 * 1024 * 1024) { photosSkip.push({ name: file.name, reason: 'ไฟล์ใหญ่เกินไป (>20MB)' }); done++; continue; }
         try {
-          const lat = EXIF.getTag(this, 'GPSLatitude');
-          const latR = EXIF.getTag(this, 'GPSLatitudeRef');
-          const lng = EXIF.getTag(this, 'GPSLongitude');
-          const lngR = EXIF.getTag(this, 'GPSLongitudeRef');
-          const dt = EXIF.getTag(this, 'DateTimeOriginal');
-          if (lat && lng) {
-            const la = dms2dd(lat, latR), lo = dms2dd(lng, lngR);
-            if (la >= -90 && la <= 90 && lo >= -180 && lo <= 180) res({ lat: la, lng: lo, date: dt || '' });
-            else res(null);
-          } else res(null);
+          const gps = await readGPS(file);
+          if (gps) {
+            const thumb = await makeThumbnail(file, 1200);
+            photosGPS.push({ name: file.name, lat: gps.lat, lng: gps.lng, date: gps.date, thumb });
+          } else {
+            photosSkip.push({ name: file.name, reason: 'ไม่พบข้อมูล GPS' });
+          }
+        } catch (e) { photosSkip.push({ name: file.name, reason: 'ข้อผิดพลาด: ' + e.message }); }
+        done++;
+        setProgress(Math.round(done / files.length * 100));
+        setStatus('กำลังประมวลผล ' + done + '/' + files.length + '...', 'info', true);
+      }
+      setProgress(null);
+      showResults();
+    }
+    
+    function readGPS(file) {
+      return new Promise((res, rej) => {
+        try {
+          EXIF.getData(file, function () {
+            try {
+              const lat = EXIF.getTag(this, 'GPSLatitude');
+              const latR = EXIF.getTag(this, 'GPSLatitudeRef');
+              const lng = EXIF.getTag(this, 'GPSLongitude');
+              const lngR = EXIF.getTag(this, 'GPSLongitudeRef');
+              const dt = EXIF.getTag(this, 'DateTimeOriginal');
+              if (lat && lng) {
+                const la = dms2dd(lat, latR), lo = dms2dd(lng, lngR);
+                if (la >= -90 && la <= 90 && lo >= -180 && lo <= 180) res({ lat: la, lng: lo, date: dt || '' });
+                else res(null);
+              } else res(null);
+            } catch (e) { rej(e); }
+          });
         } catch (e) { rej(e); }
       });
-    } catch (e) { rej(e); }
-  });
-}
-
-function dms2dd(dms, ref) {
-  const dd = dms[0] + dms[1] / 60 + dms[2] / 3600;
-  return parseFloat(((ref === 'S' || ref === 'W') ? -dd : dd).toFixed(6));
-}
-
-function makeThumbnail(file, maxSize) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxSize || h > maxSize) {
-          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
-          else { w = Math.round(w * maxSize / h); h = maxSize; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        res(canvas.toDataURL('image/jpeg', 0.82).split(',')[1]);
-      };
-      img.onerror = rej;
-      img.src = e.target.result;
-    };
-    reader.onerror = rej;
-    reader.readAsDataURL(file);
-  });
-}
-
-function showResults() {
-  if (photosGPS.length === 0 && photosSkip.length === 0) { setStatus('ไม่พบไฟล์รูปภาพ', 'err'); return; }
-  document.getElementById('countGPS').textContent = photosGPS.length;
-  document.getElementById('countSkip').textContent = photosSkip.length;
-
-  if (photosGPS.length > 0) {
-    const list = document.getElementById('photoList');
-    list.innerHTML = photosGPS.map((p, i) => `
-      <div class="photo-row" onclick="focusMarker(${i})">
-        <img class="photo-thumb" src="data:image/jpeg;base64,${p.thumb}" alt="">
-        <div>
-          <div class="photo-name">${escH(p.name)}</div>
-          <div class="photo-coord">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
-        </div>
-      </div>`).join('');
-    document.getElementById('photoListWrap').style.display = 'block';
-    initMap();
-    document.getElementById('mapEmpty').style.display = 'none';
-    document.getElementById('mapPanel').style.display = 'block';
-    setTimeout(() => { map && map.invalidateSize(); }, 100);
-    setStatus('พบ ' + photosGPS.length + ' รูปที่มีพิกัด GPS', 'ok');
-  } else {
-    setStatus('ไม่พบพิกัด GPS ในรูปใดเลย', 'err');
-  }
-
-  if (photosSkip.length > 0) {
-    document.getElementById('errList').innerHTML = photosSkip.map(p =>
-      `<div class="err-row">${escH(p.name)} — ${escH(p.reason)}</div>`).join('');
-    document.getElementById('errListWrap').style.display = 'block';
-  }
-
-  document.getElementById('resultsPanel').classList.add('show');
-}
-
-function initMap() {
-  if (map) { map.remove(); map = null; markers = []; }
-  map = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
-  markers = [];
-  const bounds = [];
-  photosGPS.forEach((p, i) => {
-    const m = L.circleMarker([p.lat, p.lng], {
-      radius: 9, fillColor: '#7c6ef5', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
-    }).addTo(map);
-    m.bindPopup(`<div style="font-size:13px;line-height:1.6"><strong>${escH(p.name)}</strong><br>
-      <small style="color:#888">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</small>
-      ${p.date ? '<br><small style="color:#888">' + escH(p.date) + '</small>' : ''}</div>`);
-    markers.push(m);
-    bounds.push([p.lat, p.lng]);
-  });
-  if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
-  else if (bounds.length === 1) map.setView(bounds[0], 15);
-}
-
-function focusMarker(i) {
-  if (!map || !markers[i]) return;
-  const ll = markers[i].getLatLng();
-  map.setView([ll.lat, ll.lng], 16);
-  markers[i].openPopup();
-}
-
-async function downloadKMZ() {
-  if (photosGPS.length === 0) { setStatus('ไม่มีข้อมูลพิกัด GPS', 'err'); return; }
-  const btn = document.getElementById('downloadBtn');
-  btn.disabled = true;
-  setStatus('กำลังสร้างไฟล์ KMZ...', 'info', true);
-  try {
-    const zip = new JSZip();
-    const filesFolder = zip.folder('files');
-    let placemarks = '';
-
-    for (let i = 0; i < photosGPS.length; i++) {
-      const p = photosGPS[i];
-      const fname = `photo_${i}.jpg`;
-      filesFolder.file(fname, p.thumb, { base64: true });
-
-      placemarks += `
-  <Placemark>
-    <name>${escX(p.name)}</name>
-    <description><![CDATA[<div style="font-family:sans-serif;max-width:320px">
-      <img src="files/${fname}" style="width:100%;max-width:320px;border-radius:6px;display:block;margin-bottom:8px">
-      <p style="margin:4px 0;color:#555;font-size:12px"><b>ไฟล์:</b> ${escX(p.name)}</p>
-      ${p.date ? `<p style="margin:4px 0;color:#555;font-size:12px"><b>วันที่:</b> ${escX(p.date)}</p>` : ''}
-      <p style="margin:4px 0;color:#555;font-size:12px"><b>พิกัด:</b> ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</p>
-    </div>]]></description>
-    <styleUrl>#photoPin</styleUrl>
-    <Point><coordinates>${p.lng},${p.lat},0</coordinates></Point>
-  </Placemark>`;
     }
-
-    // KML with BalloonStyle — required for Google Earth to render images in popups
-    const kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    
+    function dms2dd(dms, ref) {
+      const dd = dms[0] + dms[1] / 60 + dms[2] / 3600;
+      return parseFloat(((ref === 'S' || ref === 'W') ? -dd : dd).toFixed(6));
+    }
+    
+    function makeThumbnail(file, maxSize) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+              else { w = Math.round(w * maxSize / h); h = maxSize; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            res(canvas.toDataURL('image/jpeg', 0.82).split(',')[1]);
+          };
+          img.onerror = rej;
+          img.src = e.target.result;
+        };
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    function showResults() {
+      if (photosGPS.length === 0 && photosSkip.length === 0) { setStatus('ไม่พบไฟล์รูปภาพ', 'err'); return; }
+      document.getElementById('countGPS').textContent = photosGPS.length;
+      document.getElementById('countSkip').textContent = photosSkip.length;
+    
+      if (photosGPS.length > 0) {
+        const list = document.getElementById('photoList');
+        list.innerHTML = photosGPS.map((p, i) => `
+          <div class="photo-row" onclick="focusMarker(${i})">
+            <img class="photo-thumb" src="data:image/jpeg;base64,${p.thumb}" alt="">
+            <div>
+              <div class="photo-name">${escH(p.name)}</div>
+              <div class="photo-coord">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
+            </div>
+          </div>`).join('');
+        document.getElementById('photoListWrap').style.display = 'block';
+        initMap();
+        document.getElementById('mapEmpty').style.display = 'none';
+        document.getElementById('mapPanel').style.display = 'block';
+        setTimeout(() => { map && map.invalidateSize(); }, 100);
+        setStatus('พบ ' + photosGPS.length + ' รูปที่มีพิกัด GPS', 'ok');
+      } else {
+        setStatus('ไม่พบพิกัด GPS ในรูปใดเลย', 'err');
+      }
+    
+      if (photosSkip.length > 0) {
+        document.getElementById('errList').innerHTML = photosSkip.map(p =>
+          `<div class="err-row">${escH(p.name)} — ${escH(p.reason)}</div>`).join('');
+        document.getElementById('errListWrap').style.display = 'block';
+      }
+    
+      document.getElementById('resultsPanel').classList.add('show');
+    }
+    
+    function initMap() {
+      if (map) { map.remove(); map = null; markers = []; }
+      map = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+      markers = [];
+      const bounds = [];
+      photosGPS.forEach((p, i) => {
+        const m = L.circleMarker([p.lat, p.lng], {
+          radius: 9, fillColor: '#7c6ef5', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
+        }).addTo(map);
+        m.bindPopup(`<div style="font-size:13px;line-height:1.6"><strong>${escH(p.name)}</strong><br>
+          <small style="color:#888">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</small>
+          ${p.date ? '<br><small style="color:#888">' + escH(p.date) + '</small>' : ''}</div>`);
+        markers.push(m);
+        bounds.push([p.lat, p.lng]);
+      });
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
+      else if (bounds.length === 1) map.setView(bounds[0], 15);
+    }
+    
+    function focusMarker(i) {
+      if (!map || !markers[i]) return;
+      const ll = markers[i].getLatLng();
+      map.setView([ll.lat, ll.lng], 16);
+      markers[i].openPopup();
+    }
+    
+    async function downloadKMZ() {
+      if (photosGPS.length === 0) { setStatus('ไม่มีข้อมูลพิกัด GPS', 'err'); return; }
+      const btn = document.getElementById('downloadBtn');
+      btn.disabled = true;
+      setStatus('กำลังสร้างไฟล์ KMZ...', 'info', true);
+      try {
+        const zip = new JSZip();
+        let placemarks = '';
+    
+        // Generate KML with Google Earth compatible format
+        // Note: Google Earth only supports external image URLs, not embedded images
+        for (let i = 0; i < photosGPS.length; i++) {
+          const p = photosGPS[i];
+          const description = `<![CDATA[
+<div style="font-family:Arial,sans-serif;max-width:300px">
+  <p style="margin:0 0 8px 0"><b>${escX(p.name)}</b></p>
+  ${p.date ? `<p style="margin:0 0 8px 0;font-size:11px;color:#666"><b>Date:</b> ${escX(p.date)}</p>` : ''}
+  <p style="margin:0 0 8px 0;font-size:11px;color:#666"><b>Latitude:</b> ${p.lat.toFixed(6)}</p>
+  <p style="margin:0 0 8px 0;font-size:11px;color:#666"><b>Longitude:</b> ${p.lng.toFixed(6)}</p>
+  <p style="margin:0;font-size:10px;color:#999">Photo GPS → KMZ Converter</p>
+</div>
+]]>`;
+    
+          placemarks += `
+    <Placemark>
+      <name>${escX(p.name)}</name>
+      <description>${description}</description>
+      <styleUrl>#photoPin</styleUrl>
+      <Point>
+        <coordinates>${p.lng},${p.lat},0</coordinates>
+      </Point>
+    </Placemark>`;
+        }
+    
+        // Google Earth compatible KML - removed unsupported textColor attribute
+        const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <name>Photo GPS Points</name>
-    <description>สร้างด้วย Photo GPS → KMZ Converter | ${photosGPS.length} ตำแหน่ง</description>
+    <description>${photosGPS.length} photo locations with GPS coordinates</description>
     <Style id="photoPin">
       <IconStyle>
         <color>ffee6e7c</color>
         <scale>1.1</scale>
-        <Icon><href>http://maps.google.com/mapfiles/kml/paddle/red-circle.png</href></Icon>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/paddle/red-circle.png</href>
+        </Icon>
         <hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
       </IconStyle>
-      <LabelStyle><scale>0.8</scale></LabelStyle>
+      <LabelStyle>
+        <scale>0.8</scale>
+      </LabelStyle>
       <BalloonStyle>
-        <text><![CDATA[$[description]]]></text>
         <bgColor>ffffffff</bgColor>
-        <textColor>ff333333</textColor>
+        <text><![CDATA[\$[description]]]></text>
       </BalloonStyle>
     </Style>
     <Folder>
-      <name>รูปภาพที่มีพิกัด</name>
+      <name>Photo Locations</name>
       <open>1</open>${placemarks}
     </Folder>
   </Document>
 </kml>`;
-
-    zip.file('doc.kml', kml);
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `PhotoGPS_${new Date().toISOString().slice(0, 10)}.kmz`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus('ดาวน์โหลด KMZ สำเร็จ (' + photosGPS.length + ' รูป)', 'ok');
-  } catch (e) { setStatus('ข้อผิดพลาด: ' + e.message, 'err'); }
-  btn.disabled = false;
-}
-
-function resetAll() {
-  photosGPS = []; photosSkip = [];
-  fi.value = '';
-  document.getElementById('statusBox').classList.remove('show');
-  document.getElementById('resultsPanel').classList.remove('show');
-  document.getElementById('photoListWrap').style.display = 'none';
-  document.getElementById('errListWrap').style.display = 'none';
-  document.getElementById('mapPanel').style.display = 'none';
-  document.getElementById('mapEmpty').style.display = 'flex';
-  setProgress(null);
-  if (map) { map.remove(); map = null; markers = []; }
-}
-
-function escH(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-function escX(t) {
-  return String(t)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
-</script>
+    
+        zip.file('doc.kml', kml);
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `PhotoGPS_${new Date().toISOString().slice(0, 10)}.kmz`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('ดาวน์โหลด KMZ สำเร็จ (' + photosGPS.length + ' รูป)', 'ok');
+      } catch (e) { setStatus('ข้อผิดพลาด: ' + e.message, 'err'); }
+      btn.disabled = false;
+    }
+    
+    function resetAll() {
+      photosGPS = []; photosSkip = [];
+      fi.value = '';
+      document.getElementById('statusBox').classList.remove('show');
+      document.getElementById('resultsPanel').classList.remove('show');
+      document.getElementById('photoListWrap').style.display = 'none';
+      document.getElementById('errListWrap').style.display = 'none';
+      document.getElementById('mapPanel').style.display = 'none';
+      document.getElementById('mapEmpty').style.display = 'flex';
+      setProgress(null);
+      if (map) { map.remove(); map = null; markers = []; }
+    }
+    
+    function escH(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function escX(t) {
+      return String(t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    }
+  </script>
 </body>
 </html>
