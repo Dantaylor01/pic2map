@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>GPS Photo → KMZ Converter</title>
+<title>GPS Photo → KMZ (Base64 Preview)</title>
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
@@ -21,14 +21,14 @@ href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icon
 }
 
 body{
-  font-family:Arial,sans-serif;
   background:#0f1117;
   color:#fff;
+  font-family:Arial,sans-serif;
   padding:24px;
 }
 
 .app{
-  max-width:1100px;
+  max-width:1200px;
   margin:auto;
 }
 
@@ -63,8 +63,8 @@ body{
   border-radius:10px;
   padding:40px 20px;
   text-align:center;
-  cursor:pointer;
   background:#0f1125;
+  cursor:pointer;
 }
 
 .drop-zone.dragover{
@@ -72,9 +72,9 @@ body{
 }
 
 .drop-zone i{
-  font-size:42px;
+  font-size:44px;
+  margin-bottom:12px;
   display:block;
-  margin-bottom:10px;
 }
 
 input[type=file]{
@@ -100,36 +100,36 @@ input[type=file]{
 .btn-full{
   width:100%;
   justify-content:center;
-  margin-top:12px;
+  margin-top:14px;
 }
 
-.status-box{
+.status{
   margin-top:14px;
   padding:10px;
   border-radius:8px;
   display:none;
 }
 
-.status-box.show{
+.status.show{
   display:block;
 }
 
-.status-info{
-  background:#1a1d35;
+.status.info{
+  background:#1b1f3a;
 }
 
-.status-ok{
-  background:#163320;
+.status.ok{
+  background:#153322;
 }
 
-.status-err{
-  background:#3a1515;
+.status.err{
+  background:#3d1515;
 }
 
 .photo-list{
-  max-height:220px;
-  overflow:auto;
   margin-top:16px;
+  max-height:260px;
+  overflow:auto;
   border:1px solid #2a2d4a;
   border-radius:8px;
 }
@@ -143,7 +143,7 @@ input[type=file]{
 }
 
 .photo-row:hover{
-  background:#1b1d33;
+  background:#1d2140;
 }
 
 .photo-thumb{
@@ -153,14 +153,11 @@ input[type=file]{
   border-radius:6px;
 }
 
-.map-panel{
-  border-radius:10px;
-  overflow:hidden;
-}
-
 #map{
   width:100%;
-  height:650px;
+  height:700px;
+  border-radius:12px;
+  overflow:hidden;
 }
 
 @media(max-width:900px){
@@ -170,7 +167,7 @@ input[type=file]{
   }
 
   #map{
-    height:350px;
+    height:400px;
   }
 }
 
@@ -182,9 +179,12 @@ input[type=file]{
 <div class="app">
 
   <div class="header">
-    <h1><span>GPS</span> Photo → KMZ</h1>
-    <p>
-      สร้าง KMZ พร้อม Preview รูปใน Google Earth
+    <h1>
+      <span>GPS</span> Photo → KMZ
+    </h1>
+
+    <p style="margin-top:8px;color:#aaa">
+      ใช้ Base64 Inline Image สำหรับ Google Earth
     </p>
   </div>
 
@@ -194,7 +194,8 @@ input[type=file]{
 
       <div class="panel">
 
-        <div class="drop-zone" id="dropZone">
+        <div class="drop-zone"
+        id="dropZone">
 
           <i class="ti ti-photo-up"></i>
 
@@ -202,27 +203,30 @@ input[type=file]{
             ลากรูปมาวาง
           </strong>
 
-          <p style="margin-top:8px;color:#aaa">
+          <p style="margin-top:10px;color:#aaa">
             รองรับ JPG / JPEG / HEIC
           </p>
 
-          <button class="btn btn-primary"
+          <button
+          class="btn btn-primary"
           style="margin-top:14px"
           onclick="fileInput.click()">
 
             <i class="ti ti-folder-open"></i>
+
             เลือกรูปภาพ
 
           </button>
 
-          <input type="file"
+          <input
+          type="file"
           id="fileInput"
           multiple
           accept="image/*">
 
         </div>
 
-        <div class="status-box status-info"
+        <div class="status info"
         id="statusBox">
 
           <span id="statusText">
@@ -251,7 +255,8 @@ input[type=file]{
 
           </div>
 
-          <button class="btn btn-primary btn-full"
+          <button
+          class="btn btn-primary btn-full"
           id="downloadBtn">
 
             <i class="ti ti-download"></i>
@@ -266,7 +271,7 @@ input[type=file]{
 
     </div>
 
-    <div class="map-panel">
+    <div>
       <div id="map"></div>
     </div>
 
@@ -288,11 +293,13 @@ let map = null;
 
 let markers = [];
 
-const fileInput = document.getElementById('fileInput');
+const fileInput =
+  document.getElementById('fileInput');
 
-const dropZone = document.getElementById('dropZone');
+const dropZone =
+  document.getElementById('dropZone');
 
-dropZone.addEventListener('dragover', e => {
+dropZone.addEventListener('dragover',e=>{
 
   e.preventDefault();
 
@@ -300,7 +307,7 @@ dropZone.addEventListener('dragover', e => {
 
 });
 
-dropZone.addEventListener('dragleave', e => {
+dropZone.addEventListener('dragleave',e=>{
 
   e.preventDefault();
 
@@ -308,7 +315,7 @@ dropZone.addEventListener('dragleave', e => {
 
 });
 
-dropZone.addEventListener('drop', e => {
+dropZone.addEventListener('drop',e=>{
 
   e.preventDefault();
 
@@ -318,7 +325,7 @@ dropZone.addEventListener('drop', e => {
 
 });
 
-fileInput.addEventListener('change', e => {
+fileInput.addEventListener('change',e=>{
 
   handleFiles(e.target.files);
 
@@ -326,11 +333,14 @@ fileInput.addEventListener('change', e => {
 
 function setStatus(msg,type='info'){
 
-  const box = document.getElementById('statusBox');
+  const box =
+    document.getElementById('statusBox');
 
-  const txt = document.getElementById('statusText');
+  const txt =
+    document.getElementById('statusText');
 
-  box.className = 'status-box show status-' + type;
+  box.className =
+    'status show ' + type;
 
   txt.textContent = msg;
 }
@@ -341,7 +351,7 @@ async function handleFiles(files){
 
   markers = [];
 
-  setStatus('กำลังอ่านไฟล์...');
+  setStatus('กำลังอ่านรูป...');
 
   for(const file of files){
 
@@ -351,9 +361,8 @@ async function handleFiles(files){
 
       if(!gps) continue;
 
-      const thumb = await makeThumbnail(file,600);
-
-      const full = await fileToBase64(file);
+      const thumb =
+        await makeThumbnail(file,600);
 
       photosGPS.push({
 
@@ -365,9 +374,7 @@ async function handleFiles(files){
 
         date:gps.date,
 
-        thumb,
-
-        full
+        thumb
 
       });
 
@@ -375,12 +382,10 @@ async function handleFiles(files){
     catch(err){
 
       console.error(err);
-
     }
   }
 
   renderResults();
-
 }
 
 function readGPS(file){
@@ -391,15 +396,20 @@ function readGPS(file){
 
       try{
 
-        const lat = EXIF.getTag(this,'GPSLatitude');
+        const lat =
+          EXIF.getTag(this,'GPSLatitude');
 
-        const latRef = EXIF.getTag(this,'GPSLatitudeRef');
+        const latRef =
+          EXIF.getTag(this,'GPSLatitudeRef');
 
-        const lng = EXIF.getTag(this,'GPSLongitude');
+        const lng =
+          EXIF.getTag(this,'GPSLongitude');
 
-        const lngRef = EXIF.getTag(this,'GPSLongitudeRef');
+        const lngRef =
+          EXIF.getTag(this,'GPSLongitudeRef');
 
-        const dt = EXIF.getTag(this,'DateTimeOriginal');
+        const dt =
+          EXIF.getTag(this,'DateTimeOriginal');
 
         if(!lat || !lng){
 
@@ -408,9 +418,11 @@ function readGPS(file){
           return;
         }
 
-        const la = dms2dd(lat,latRef);
+        const la =
+          dms2dd(lat,latRef);
 
-        const lo = dms2dd(lng,lngRef);
+        const lo =
+          dms2dd(lng,lngRef);
 
         resolve({
 
@@ -426,7 +438,6 @@ function readGPS(file){
       catch(e){
 
         reject(e);
-
       }
 
     });
@@ -447,7 +458,7 @@ function dms2dd(dms,ref){
   ) ? -dd : dd;
 }
 
-function makeThumbnail(file,max){
+function makeThumbnail(file,maxSize){
 
   return new Promise((resolve,reject)=>{
 
@@ -460,36 +471,36 @@ function makeThumbnail(file,max){
       img.onload = ()=>{
 
         let w = img.width;
-
         let h = img.height;
 
         if(w > h){
 
-          h *= max / w;
-
-          w = max;
-
+          h *= maxSize / w;
+          w = maxSize;
         }
         else{
 
-          w *= max / h;
-
-          h = max;
+          w *= maxSize / h;
+          h = maxSize;
         }
 
-        const c = document.createElement('canvas');
+        const canvas =
+          document.createElement('canvas');
 
-        c.width = w;
+        canvas.width = w;
+        canvas.height = h;
 
-        c.height = h;
-
-        c.getContext('2d')
+        canvas
+        .getContext('2d')
         .drawImage(img,0,0,w,h);
 
-        resolve(
-          c.toDataURL('image/jpeg',0.82)
-          .split(',')[1]
-        );
+        const data =
+          canvas.toDataURL(
+            'image/jpeg',
+            0.82
+          );
+
+        resolve(data);
 
       };
 
@@ -504,35 +515,16 @@ function makeThumbnail(file,max){
 
 }
 
-function fileToBase64(file){
-
-  return new Promise((resolve,reject)=>{
-
-    const reader = new FileReader();
-
-    reader.onload = e => {
-
-      resolve(
-        e.target.result.split(',')[1]
-      );
-
-    };
-
-    reader.onerror = reject;
-
-    reader.readAsDataURL(file);
-
-  });
-
-}
-
 function renderResults(){
 
-  document.getElementById('results')
+  document
+  .getElementById('results')
   .style.display = 'block';
 
-  document.getElementById('gpsCount')
-  .textContent = photosGPS.length;
+  document
+  .getElementById('gpsCount')
+  .textContent =
+    photosGPS.length;
 
   const list =
     document.getElementById('photoList');
@@ -541,16 +533,20 @@ function renderResults(){
 
   photosGPS.forEach((p,i)=>{
 
-    const row = document.createElement('div');
+    const row =
+      document.createElement('div');
 
-    row.className = 'photo-row';
+    row.className =
+      'photo-row';
 
     row.innerHTML = `
-      <img class="photo-thumb"
-      src="data:image/jpeg;base64,${p.thumb}">
+      <img
+      class="photo-thumb"
+      src="${p.thumb}">
 
       <div>
         <div>${esc(p.name)}</div>
+
         <small style="color:#999">
           ${p.lat.toFixed(6)},
           ${p.lng.toFixed(6)}
@@ -580,8 +576,9 @@ function initMap(){
     map.remove();
   }
 
-  map = L.map('map')
-  .setView([13.7563,100.5018],10);
+  map =
+    L.map('map')
+    .setView([13.7563,100.5018],10);
 
   L.tileLayer(
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -594,8 +591,9 @@ function initMap(){
 
   photosGPS.forEach((p,i)=>{
 
-    const marker = L.marker([p.lat,p.lng])
-    .addTo(map);
+    const marker =
+      L.marker([p.lat,p.lng])
+      .addTo(map);
 
     marker.bindPopup(`
       <b>${esc(p.name)}</b><br>
@@ -641,7 +639,10 @@ async function downloadKMZ(){
     return;
   }
 
-  setStatus('กำลังสร้าง KMZ...');
+  setStatus(
+    'กำลังสร้าง KMZ...',
+    'info'
+  );
 
   try{
 
@@ -653,23 +654,12 @@ async function downloadKMZ(){
 
       const p = photosGPS[i];
 
-      const imgName =
-        `photo_${i}.jpg`;
-
-      // IMPORTANT:
-      // Put image in ROOT
-
-      zip.file(
-        imgName,
-        p.full,
-        {base64:true}
-      );
-
       const html = `
 <![CDATA[
 <div style="width:420px">
 
-  <img src="${imgName}"
+  <img
+  src="${p.thumb}"
   style="
     width:100%;
     border-radius:6px;
@@ -689,7 +679,8 @@ async function downloadKMZ(){
       p.date
       ? `
       <span style="color:#666">
-      Date: ${escX(p.date)}
+        Date:
+        ${escX(p.date)}
       </span><br>
       `
       : ''
@@ -713,22 +704,22 @@ async function downloadKMZ(){
       placemarks += `
 <Placemark>
 
-  <name>${escX(p.name)}</name>
+  <name>
+    ${escX(p.name)}
+  </name>
 
   <description>
     ${html}
   </description>
 
-  <styleUrl>
-    #photoStyle
-  </styleUrl>
-
   <Point>
+
     <coordinates>
       ${p.lng},
       ${p.lat},
       0
     </coordinates>
+
   </Point>
 
 </Placemark>`;
@@ -746,38 +737,6 @@ async function downloadKMZ(){
   </name>
 
   <open>1</open>
-
-  <Style id="photoStyle">
-
-    <IconStyle>
-
-      <scale>1.2</scale>
-
-      <Icon>
-
-        <href>
-https://maps.google.com/mapfiles/kml/paddle/red-circle.png
-        </href>
-
-      </Icon>
-
-    </IconStyle>
-
-    <BalloonStyle>
-
-      <bgColor>
-        ffffffff
-      </bgColor>
-
-      <text>
-<![CDATA[
-$[description]
-]]>
-      </text>
-
-    </BalloonStyle>
-
-  </Style>
 
   <Folder>
 
@@ -857,7 +816,8 @@ $[description]
 
 function esc(t){
 
-  const d = document.createElement('div');
+  const d =
+    document.createElement('div');
 
   d.textContent = t;
 
