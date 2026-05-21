@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Photo GPS → KML Converter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -15,7 +16,7 @@
     }
     
     .container { 
-      max-width: 800px; 
+      max-width: 1200px; 
       margin: auto; 
       background: white; 
       padding: 30px; 
@@ -37,12 +38,24 @@
       font-size: 1.1em;
     }
     
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    
+    .upload-section {
+      display: flex;
+      flex-direction: column;
+    }
+    
     #dropZone { 
       border: 3px dashed #667eea; 
       border-radius: 12px; 
       padding: 50px 20px; 
       text-align: center; 
-      margin: 30px 0; 
+      margin: 0 0 30px 0; 
       cursor: pointer;
       transition: all 0.3s ease;
       background: #f8f9ff;
@@ -160,6 +173,7 @@
       border-left: 4px solid #388e3c;
       border-radius: 8px; 
       display: none;
+      grid-column: 1;
     }
     
     .result.show {
@@ -229,6 +243,12 @@
       border-bottom: 1px solid #eee;
       font-size: 0.9em;
       color: #666;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .photo-item:hover {
+      background: #f5f5f5;
     }
     
     .photo-item:last-child {
@@ -269,6 +289,48 @@
       border-bottom: none;
     }
 
+    #mapContainer {
+      display: none;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      grid-row: 1 / 3;
+    }
+
+    #map {
+      width: 100%;
+      height: 500px;
+      border-radius: 12px;
+    }
+
+    .map-info {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #666;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .content-wrapper {
+        grid-template-columns: 1fr;
+      }
+
+      #mapContainer {
+        grid-row: auto;
+      }
+
+      #map {
+        height: 400px;
+      }
+
+      .result {
+        grid-column: 1;
+      }
+    }
+
     @media (max-width: 600px) {
       .container {
         padding: 20px;
@@ -285,6 +347,10 @@
       .stats {
         grid-template-columns: 1fr;
       }
+
+      #map {
+        height: 300px;
+      }
     }
   </style>
 </head>
@@ -293,47 +359,59 @@
     <h1>📸 Photo GPS → KML</h1>
     <p class="subtitle">อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด → ดาวน์โหลดไฟล์ KML</p>
 
-    <div id="dropZone">
-      <h3>ลากไฟล์รูปมาวางที่นี่</h3>
-      <p>หรือ</p>
-      <input type="file" id="fileInput" multiple accept="image/*">
-      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">เลือกไฟล์รูปภาพ</button>
-    </div>
+    <div class="content-wrapper">
+      <div class="upload-section">
+        <div id="dropZone">
+          <h3>ลากไฟล์รูปมาวางที่นี่</h3>
+          <p>หรือ</p>
+          <input type="file" id="fileInput" multiple accept="image/*">
+          <button class="btn-primary" onclick="document.getElementById('fileInput').click()">เลือกไฟล์รูปภาพ</button>
+        </div>
 
-    <div id="status"></div>
-    
-    <div id="result" class="result">
-      <h3>✅ เสร็จสิ้น</h3>
-      <div class="stats">
-        <div class="stat-box">
-          <div class="stat-number" id="count">0</div>
-          <div class="stat-label">รูปที่มีพิกัด</div>
+        <div id="status"></div>
+        
+        <div id="result" class="result">
+          <h3>✅ เสร็จสิ้น</h3>
+          <div class="stats">
+            <div class="stat-box">
+              <div class="stat-number" id="count">0</div>
+              <div class="stat-label">รูปที่มีพิกัด</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number" id="skippedCount">0</div>
+              <div class="stat-label">รูปที่ข้าม</div>
+            </div>
+          </div>
+          
+          <div id="photoListContainer" style="display:none;">
+            <h4 style="color: #667eea; margin-bottom: 10px;">📍 รูปที่พบพิกัด:</h4>
+            <div class="photo-list" id="photoList"></div>
+          </div>
+          
+          <div id="errorListContainer" style="display:none;">
+            <h4 style="color: #f57c00; margin-bottom: 10px;">⚠️ รูปที่ไม่มีพิกัด:</h4>
+            <div class="error-list" id="errorList"></div>
+          </div>
+          
+          <button class="btn-primary" onclick="downloadKML()" style="width: 100%; margin-top: 15px;">⬇️ ดาวน์โหลดไฟล์ KML</button>
+          <button class="btn-secondary" onclick="resetForm()" style="width: 100%; margin-top: 10px;">🔄 อัพโหลดไฟล์ใหม่</button>
         </div>
-        <div class="stat-box">
-          <div class="stat-number" id="skippedCount">0</div>
-          <div class="stat-label">รูปที่ข้าม</div>
-        </div>
       </div>
-      
-      <div id="photoListContainer" style="display:none;">
-        <h4 style="color: #667eea; margin-bottom: 10px;">📍 รูปที่พบพิกัด:</h4>
-        <div class="photo-list" id="photoList"></div>
+
+      <div id="mapContainer">
+        <div id="map"></div>
+        <div class="map-info" id="mapInfo">แผนที่จะแสดงที่นี่</div>
       </div>
-      
-      <div id="errorListContainer" style="display:none;">
-        <h4 style="color: #f57c00; margin-bottom: 10px;">⚠️ รูปที่ไม่มีพิกัด:</h4>
-        <div class="error-list" id="errorList"></div>
-      </div>
-      
-      <button class="btn-primary" onclick="downloadKML()" style="width: 100%; margin-top: 15px;">⬇️ ดาวน์โหลดไฟล์ KML</button>
-      <button class="btn-secondary" onclick="resetForm()" style="width: 100%; margin-top: 10px;">🔄 อัพโหลดไฟล์ใหม่</button>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script>
     let photosWithGPS = [];
     let photosWithoutGPS = [];
+    let map = null;
+    let markers = [];
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -487,6 +565,20 @@
       return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
     }
 
+    function initializeMap() {
+      if (map) {
+        map.remove();
+      }
+      
+      map = L.map('map').setView([13.7563, 100.5018], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+      
+      markers = [];
+    }
+
     function displayResults() {
       if (photosWithGPS.length === 0 && photosWithoutGPS.length === 0) {
         showStatus('ไม่พบไฟล์รูปภาพ', 'error');
@@ -497,11 +589,16 @@
         document.getElementById('count').textContent = photosWithGPS.length;
         document.getElementById('skippedCount').textContent = photosWithoutGPS.length;
         
+        // Initialize and display map
+        initializeMap();
+        displayMapMarkers();
+        document.getElementById('mapContainer').style.display = 'block';
+        
         // Display photo list
         const photoListContainer = document.getElementById('photoListContainer');
         const photoList = document.getElementById('photoList');
-        photoList.innerHTML = photosWithGPS.map(photo => `
-          <div class="photo-item">
+        photoList.innerHTML = photosWithGPS.map((photo, index) => `
+          <div class="photo-item" onclick="focusMarker(${index})">
             <div class="photo-name">📷 ${escapeHtml(photo.name)}</div>
             <div class="photo-coords">📍 ${photo.lat.toFixed(4)}, ${photo.lng.toFixed(4)}</div>
           </div>
@@ -524,6 +621,63 @@
       } else {
         showStatus('ไม่พบพิกัด GPS ในรูปใดเลย', 'error');
       }
+    }
+
+    function displayMapMarkers() {
+      if (!map || photosWithGPS.length === 0) return;
+
+      // Clear existing markers
+      markers.forEach(marker => marker.remove());
+      markers = [];
+
+      // Calculate bounds
+      const lats = photosWithGPS.map(p => p.lat);
+      const lngs = photosWithGPS.map(p => p.lng);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+
+      // Add markers
+      photosWithGPS.forEach((photo, index) => {
+        const marker = L.circleMarker([photo.lat, photo.lng], {
+          radius: 8,
+          fillColor: '#667eea',
+          color: '#764ba2',
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.7
+        }).addTo(map);
+        
+        marker.bindPopup(`
+          <strong>${escapeHtml(photo.name)}</strong><br>
+          📍 ${photo.lat.toFixed(6)}, ${photo.lng.toFixed(6)}<br>
+          <small>${photo.date || 'ไม่ทราบวันที่'}</small>
+        `);
+        
+        markers.push(marker);
+      });
+
+      // Fit map to bounds with padding
+      const padding = 0.1;
+      const latPadding = (maxLat - minLat) * padding;
+      const lngPadding = (maxLng - minLng) * padding;
+      
+      map.fitBounds([
+        [minLat - latPadding, minLng - lngPadding],
+        [maxLat + latPadding, maxLng + lngPadding]
+      ]);
+
+      // Update map info
+      document.getElementById('mapInfo').innerHTML = 
+        `📍 ${photosWithGPS.length} ตำแหน่ง | ละติจูด: ${minLat.toFixed(4)}° ถึง ${maxLat.toFixed(4)}° | ลองจิจูด: ${minLng.toFixed(4)}° ถึง ${maxLng.toFixed(4)}°`;
+    }
+
+    function focusMarker(index) {
+      if (!map || !markers[index]) return;
+      const marker = markers[index];
+      map.setView([marker.getLatLng().lat, marker.getLatLng().lng], 15);
+      marker.openPopup();
     }
 
     function downloadKML() {
@@ -586,6 +740,11 @@
       document.getElementById('result').classList.remove('show');
       document.getElementById('photoListContainer').style.display = 'none';
       document.getElementById('errorListContainer').style.display = 'none';
+      document.getElementById('mapContainer').style.display = 'none';
+      if (map) {
+        map.remove();
+        map = null;
+      }
     }
 
     function escapeHtml(text) {
