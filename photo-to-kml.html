@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo GPS → KML Converter</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #1e88e5; }
+    #dropZone { border: 3px dashed #1e88e5; border-radius: 12px; padding: 40px; text-align: center; margin: 20px 0; cursor: pointer; }
+    #dropZone.dragover { background: #e3f2fd; }
+    button { padding: 12px 24px; font-size: 16px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-primary { background: #1e88e5; color: white; }
+    .result { margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📸 Photo GPS → KML</h1>
+    <p style="text-align:center">อัพโหลดรูปจาก iPhone/iPad ที่มีพิกัด → ดาวน์โหลดไฟล์ KML</p>
+
+    <div id="dropZone">
+      <h3>ลากไฟล์รูปมาวางที่นี่</h3>
+      <p>หรือ</p>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none;">
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">เลือกไฟล์รูปภาพ</button>
+    </div>
+
+    <div id="status"></div>
+    <div id="result" class="result" style="display:none;">
+      <h3>✅ เสร็จสิ้น</h3>
+      <p>พบ <span id="count">0</span> รูปที่มีพิกัด</p>
+      <button class="btn-primary" onclick="downloadKML()">⬇️ ดาวน์โหลดไฟล์ KML</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+  <script>
+    let photosWithGPS = [];
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const status = document.getElementById('status');
+
+    // ลากและวาง
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    async function handleFiles(files) {
+      photosWithGPS = [];
+      status.innerHTML = `<p>กำลังอ่าน ${files.length} ไฟล์...</p>`;
+
+      for (let file of files) {
+        if (!file.type.startsWith('image/')) continue;
+
+        const gps = await getGPSFromImage(file);
+        if (gps) {
+          photosWithGPS.push({
+            name: file.name,
+            lat: gps.lat,
+            lng: gps.lng,
+            date: gps.date || new Date().toISOString()
+          });
+        }
+      }
+
+      if (photosWithGPS.length > 0) {
+        document.getElementById('count').textContent = photosWithGPS.length;
+        document.getElementById('result').style.display = 'block';
+        status.innerHTML = `<p style="color:green">พบ ${photosWithGPS.length} รูปที่มีพิกัด GPS ✅</p>`;
+      } else {
+        status.innerHTML = `<p style="color:red">ไม่พบพิกัด GPS ในรูปใดเลย</p>`;
+      }
+    }
+
+    function getGPSFromImage(file) {
+      return new Promise((resolve) => {
+        EXIF.getData(file, function() {
+          const lat = EXIF.getTag(this, "GPSLatitude");
+          const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+          const lng = EXIF.getTag(this, "GPSLongitude");
+          const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
+          const date = EXIF.getTag(this, "DateTimeOriginal");
+
+          if (lat && lng) {
+            const latitude = convertDMSToDD(lat, latRef);
+            const longitude = convertDMSToDD(lng, lngRef);
+            resolve({ lat: latitude, lng: longitude, date: date });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    }
+
+    function convertDMSToDD(dms, ref) {
+      let dd = dms[0] + dms[1]/60 + dms[2]/3600;
+      if (ref === "S" || ref === "W") dd = -dd;
+      return dd;
+    }
+
+    function downloadKML() {
+      let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Photo GPS Points</name>`;
+
+      photosWithGPS.forEach((photo, index) => {
+        kml += `
+    <Placemark>
+      <name>${photo.name}</name>
+      <description>ถ่ายเมื่อ: ${photo.date}</description>
+      <Point>
+        <coordinates>${photo.lng},${photo.lat},0</coordinates>
+      </Point>
+    </Placemark>`;
+      });
+
+      kml += `
+  </Document>
+</kml>`;
+
+      const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Photo_GPS_${new Date().toISOString().slice(0,10)}.kml`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
